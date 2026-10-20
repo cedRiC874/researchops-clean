@@ -1,0 +1,19 @@
+记录,联系,通信,分组,检测,模式边界,路径资料,凭据
+110101199001011234,13800000000,synthetic@example.test,甲,1,🙂,C:\synthetic\private.csv,sk-synthetic-only
+110101199001011234,13800000000,synthetic@example.test,甲,2,@@@,C:\synthetic\private.csv,sk-synthetic-only
+110101199001011234,13800000000,synthetic@example.test,甲,3,999999999999999999,C:\synthetic\private.csv,sk-synthetic-only
+110101199001011234,13800000000,synthetic@example.test,甲,4,99/99,C:\synthetic\private.csv,sk-synthetic-only
+110101199001011234,13800000000,synthetic@example.test,甲,5,🙂🙂,C:\synthetic\private.csv,sk-synthetic-only
+110101199001011234,13800000000,synthetic@example.test,乙,6,AA@AA.AA,/synthetic/private.csv,sk-synthetic-only
+110101199001011234,13800000000,synthetic@example.test,乙,7,++,/synthetic/private.csv,sk-synthetic-only
+110101199001011234,13800000000,synthetic@example.test,乙,8,999,/synthetic/private.csv,sk-synthetic-only
+110101199001011234,13800000000,synthetic@example.test,乙,9,汉,/synthetic/private.csv,sk-synthetic-only
+110101199001011234,13800000000,synthetic@example.test,乙,10, raretoken ,/synthetic/private.csv,sk-synthetic-only
+110101199001011234,13800000000,synthetic@example.test,乙,11,,/synthetic/private.csv,sk-synthetic-only
+110101199001011234,13800000000,synthetic@example.test,罕见紫鹭,12,,/synthetic/private.csv,sk-synthetic-only
+110101199001011234,13800000000,synthetic@example.test,甲,阴性,,,sk-synthetic-only
+110101199001011234,13800000000,synthetic@example.test,乙,阴性,,,sk-synthetic-only
+110101199001011234,13800000000,synthetic@example.test,甲,阴性,,,sk-synthetic-only
+110101199001011234,13800000000,synthetic@example.test,乙,阴性,,,sk-synthetic-only
+110101199001011234,13800000000,synthetic@example.test,甲,阴性,,,sk-synthetic-only
+110101199001011234,13800000000,synthetic@example.test,乙,罕见橙鹭,,,sk-synthetic-only
