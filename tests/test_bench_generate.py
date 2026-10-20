@@ -198,6 +198,7 @@ class BenchmarkGenerationTests(unittest.TestCase):
                 "decided_at_utc": FIXED_TIMESTAMP,
                 "content_sha256": hashlib.sha256(json.dumps({
                     "input_sha256": recipe["input"]["sha256"],
+                    "step_order": [item["step_id"] for item in recipe["steps"]],
                     "step_id": step["step_id"], "op": step["op"], "params": step["params"],
                 }, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
                     allow_nan=False).encode("utf-8")).hexdigest(),
@@ -228,6 +229,7 @@ class BenchmarkGenerationTests(unittest.TestCase):
                 recorded = step["approval"].pop("content_sha256")
                 self.assertEqual(recorded, hashlib.sha256(json.dumps({
                     "input_sha256": recipe["input"]["sha256"],
+                    "step_order": [item["step_id"] for item in recipe["steps"]],
                     "step_id": step["step_id"], "op": step["op"], "params": step["params"],
                 }, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
                     allow_nan=False).encode("utf-8")).hexdigest())

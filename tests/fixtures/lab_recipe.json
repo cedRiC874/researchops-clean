@@ -10,77 +10,77 @@
       "op": "normalize_text",
       "params": {"column": "结果"},
       "reason": "去除首尾空白并统一全角 ASCII 字符",
-      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "904c4e868b30e35d89bc40b4dd2460ee0e246f5479e24ea4f29057cd95d292e9"}
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "7e16bd0c776ef0de448e7beecb04e939f169d7425f271ea3d75905ba1c9169f9"}
     },
     {
       "step_id": "S2",
       "op": "sentinel_to_missing",
       "params": {"column": "年龄", "values": ["999"]},
       "reason": "将约定的年龄哨兵值记为缺失",
-      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "02c23b347950bfd223de9ee1d9c5fe5749ec94405a73eb29444236e274f55156"}
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "bdc97a12171355451ae1cfc584a0c616eae79e907ef8e0e4fa7b716977b51fd0"}
     },
     {
       "step_id": "S3",
       "op": "sentinel_to_missing",
       "params": {"column": "采样时间", "values": ["1900-01-01"]},
       "reason": "将约定的日期哨兵值记为缺失",
-      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "024373fb40d435fefa4cc595c5ff132e37d182f24b5231796defcbb4c796e9fe"}
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "3f34d1084cd33d76b20a2469e8b982b50b8a5959346835b5e33b11e693cda1b0"}
     },
     {
       "step_id": "S4",
       "op": "map_values",
       "params": {"column": "性别", "mapping": {"M": "男", "1": "男", "F": "女", "2": "女"}, "on_unmapped": "keep_and_flag"},
       "reason": "统一性别编码，保留并标记未映射值",
-      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "abaf96418a191af3cc4f2c591807286d7fe071719ac2bdd2ee8e34d254086be2"}
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "6ebfe3d9e456b24cd52fb3e2c3274ce892a193505ffca310a9c6dcc6ae50b37c"}
     },
     {
       "step_id": "S5",
       "op": "map_values",
       "params": {"column": "项目", "mapping": {"HGB": "血红蛋白", "Hb": "血红蛋白"}, "on_unmapped": "keep"},
       "reason": "统一血红蛋白别名，其他指标保持原样",
-      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "97da951bc8e47191155cea845639c01bea9377d5c118be96151a10b154d822a0"}
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "2cfbd0fc9c8b3014d71a3229c76b2b123ddcff073a94d439bca3ab273b37c847"}
     },
     {
       "step_id": "S6",
       "op": "parse_date",
       "params": {"column": "采样时间", "output_column": "采样日期", "formats": ["%Y/%m/%d %H:%M", "%Y%m%d", "%Y-%m-%d"], "output": "date", "excel_serial": {"enabled": true, "min": 20000, "max": 60000}},
       "reason": "在新列记录解析后的采样日期",
-      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "83f36d279a3d9b4eb2952f026ca8041611ea4b0d4c369b39e6503673e2ddf2b9"}
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "693a716f711b343482a9e12458c3954fbd8f68fda319a01e46a78cdcf107a27f"}
     },
     {
       "step_id": "S7",
       "op": "parse_age_cn",
       "params": {"column": "年龄", "outputs": {"years": "年龄_岁", "months": "年龄_月", "days": "年龄_天"}},
       "reason": "分别提取年龄的岁、月、天分量",
-      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "424be12c60443e20396977d50bf60d1dbb0f63b78a81ad8c2e38355ff0432532"}
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "797c88fb8f4a614d069b93b1d43111ad47b7c095d3bb80c28a41b0289a714666"}
     },
     {
       "step_id": "S8",
       "op": "parse_lab_result",
       "params": {"column": "结果", "qualitative_values": ["阴性", "阳性", "+", "++", "+++"], "invalid_values": ["溶血", "标本不合格"], "outputs": {"value": "结果数值", "qualifier": "结果限定", "qualitative": "定性结果", "invalid": "结果无效"}},
       "reason": "分开记录数值、限定符、定性结果和无效状态",
-      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "8a739abb12c1450b4c5360678e0bb50ed187c40e6fab2e1d4dd330b66992819e"}
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "33d8ec7a817c592210f340725659aa703fa27c86b829e50faa4876fee7e083d3"}
     },
     {
       "step_id": "S9",
       "op": "convert_unit",
       "params": {"value_column": "结果数值", "unit_column": "单位", "conversions": [{"from": "g/dL", "to": "g/L", "factor": "10"}], "where": {"column": "项目", "equals": "血红蛋白"}},
       "reason": "将血红蛋白的 g/dL 换算为 g/L",
-      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "8e9edafd30d15a472a5e001e96f0572ad72f9137490dba54f91d3824754b18d8"}
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "08945db621a99f70ed344c7b4996cc65d1db37f007fe7b14fbef154779db5c1b"}
     },
     {
       "step_id": "S10",
       "op": "range_check",
       "params": {"column": "结果数值", "min": "30", "max": "250", "where": {"column": "项目", "equals": "血红蛋白"}},
       "reason": "按合成示例界限标记血红蛋白异常值，不改变取值",
-      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "b7e90614adb1d53e558b5afbea4c502346e652ffc1f1eccbcfe90dcc8597154c"}
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "bfae9f0d102d3a86c645b9784f87567fe70750083c8102ebcf57b535e5d327ca"}
     },
     {
       "step_id": "S11",
       "op": "flag_duplicates",
       "params": {"key_columns": ["住院号", "采样日期", "项目", "结果数值", "单位"]},
       "reason": "按清洗后的关键列标记重复记录，不删除行",
-      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "45fb4d9770c9868f57f58db798582ba4797a3bcdd716f74b69a37ff276e488f1"}
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z", "content_sha256": "53c2096f940bcaeaf6307a0ed69bf87934c8fa603b15c1a1e404c1adbb340e1a"}
     }
   ]
 }

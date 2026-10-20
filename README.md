@@ -47,11 +47,15 @@ python -m researchops_clean verify --input data.csv --recipe approved.json --run
 
 配方使用 `cleaning-recipe/1` 格式，绑定输入文件原始字节的 SHA-256 及完整、有序的表头。待批准步骤的参数允许暂不完整，批准时校验所选步骤，执行时校验全部步骤。只有全部步骤为 `approved` 才能执行；**被 `rejected` 的步骤必须先从配方中移除**。未知操作、非法参数、缺少列、输入哈希或表头不符都会拒绝执行。
 
-每次 `approve` 会在所选步骤的批准记录中写入 `approval.content_sha256`，绑定配方的输入 SHA-256 以及该步骤的 `step_id`、`op`、`params`；`reason` 不参与绑定。`apply` 和 `verify` 均重新校验，若批准哈希缺失或不一致，会以退出码 `2`、错误码 `approval_content_mismatch` 拒绝，并列出相关 `step_id`。修改输入哈希或已批准步骤的上述内容后须重新批准；旧批准记录没有内容哈希时，也须重新运行 `approve`，不会自动兼容。这是内容一致性校验，不是审核人身份的数字签名。
+每次 `approve` 会在所选步骤的批准记录中写入 `approval.content_sha256`，绑定 `input_sha256`、`step_order` 和该步骤的 `step_id`、`op`、`params`。`step_order` 是配方全部步骤编号的有序列表，包括仍为 `pending` 的步骤；`reason` 不参与绑定。`apply` 和 `verify` 均重新校验，若批准哈希缺失或不一致，会以退出码 `2`、错误码 `approval_content_mismatch` 拒绝，并列出相关 `step_id`。旧批准记录，包括此前未绑定顺序的四字段哈希，都须重新运行 `approve`，不会自动兼容。这是内容一致性校验，不是审核人身份的数字签名。
+
+先删除不需要执行的步骤，再批准保留的步骤。批准后若增加、删除、重排步骤或修改步骤编号，所有已批准步骤都须重新批准；步骤编号列表不变时，可以分批批准。修改输入哈希或某个已批准步骤自身的 `op`、`params` 后，也须重新批准受影响的步骤。
 
 仅修改 `reason` 不会使该步骤的批准失效，仍可用于新的 `apply`。已有运行的 `verify` 继续校验整个配方的 `recipe_hash`，因此不能用修改过理由的配方核验旧运行。
 
-批准内容哈希保留 Unicode 原文：将上述四个字段按键排序、紧凑 JSON 格式序列化为 UTF-8 后计算 SHA-256，不做 Unicode 归一化。这里不使用会进行 NFC 归一化的 `ledger.sha256_json`，以免原文不同的列名或映射字符串共用同一批准哈希；账本的既有哈希规则不变。CSV 读取不会修改列名；若任意两个列名经 NFC 归一化后相同，会以 `ambiguous_column_names` 拒绝读取，须先人工消除歧义。
+批准内容哈希保留 Unicode 原文：将上述五个字段按键排序、紧凑 JSON 格式序列化为 UTF-8 后计算 SHA-256，不做 Unicode 归一化。这里不使用会进行 NFC 归一化的 `ledger.sha256_json`，以免原文不同的列名或映射字符串共用同一批准哈希；账本的既有哈希规则不变。CSV 读取不会修改列名；若任意两个列名经 NFC 归一化后相同，会以 `ambiguous_column_names` 拒绝读取，须先人工消除歧义。重复表头的错误提示只报告列位置，不回显列名。
+
+新派生列也按 NFC 检查是否与已有列或其他新派生列冲突：批准阶段以 `recipe_invalid` 拒绝，模型建议以 `output_column_conflict` 拒绝。对已有列的引用仍须精确匹配原列名，不会自动归一化。
 
 `apply` 以当前工作目录为项目根，输出目录必须是 `artifacts/` 下尚不存在的独立子目录。输入限制为 50 MB、1,000,000 行，表头不允许空列名或重复列名。编码只允许 `utf-8-sig`（默认，也兼容普通 UTF-8）、`utf-8`、`gbk` 和 `gb18030`；`verify` 按 manifest 中记录的输入编码重放。
 

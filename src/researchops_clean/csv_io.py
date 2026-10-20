@@ -37,9 +37,16 @@ class Table:
 def _validate_columns(columns: Sequence[str]) -> None:
     if not columns or any(not isinstance(name, str) or not name.strip() for name in columns):
         raise CSVError("csv_header_invalid", "CSV 表头不能包含空列名。")
-    normalized = [unicodedata.normalize("NFC", name) for name in columns]
-    if len(set(normalized)) != len(columns):
-        raise CSVError("ambiguous_column_names", "CSV 表头不能包含 NFC 归一化后相同的列名。")
+    positions = {}
+    for position, name in enumerate(columns, 1):
+        normalized = unicodedata.normalize("NFC", name)
+        if normalized in positions:
+            raise CSVError(
+                "ambiguous_column_names",
+                f"CSV 表头第 {positions[normalized]} 列和第 {position} 列的列名相同"
+                "（可能只是看起来相同、编码不同），请先在原表中改名。",
+            )
+        positions[normalized] = position
 
 
 def read_csv(path: Path, encoding: str = "utf-8-sig") -> Table:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import re
+import unicodedata
 from datetime import datetime, timedelta
 from decimal import Decimal, localcontext
 from typing import Any
@@ -219,7 +220,11 @@ def validate_operation(op: str, params: Any, columns: list[str]) -> list[str]:
         raise OperationError("column_missing", "操作引用了不存在的列。")
 
     new_columns = declared_output_columns(op, params)
-    if len(new_columns) != len(set(new_columns)) or any(column in columns for column in new_columns):
+    normalized_new = [unicodedata.normalize("NFC", column) for column in new_columns]
+    normalized_existing = {unicodedata.normalize("NFC", column) for column in columns}
+    if len(normalized_new) != len(set(normalized_new)) or any(
+        column in normalized_existing for column in normalized_new
+    ):
         raise OperationError("recipe_invalid", "新列名必须互不重复，且不能覆盖已有列。")
     return new_columns
 

@@ -8,6 +8,7 @@ import os
 import shutil
 import sqlite3
 import tempfile
+import unicodedata
 from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -205,7 +206,11 @@ def validate_proposals(
                 code = "column_unknown"
             elif Draft202012Validator(catalog[op]).is_valid(params):
                 declared = ops.declared_output_columns(op, params)
-                if len(declared) != len(set(declared)) or any(name in columns for name in declared):
+                normalized_new = [unicodedata.normalize("NFC", name) for name in declared]
+                normalized_existing = {unicodedata.normalize("NFC", name) for name in columns}
+                if len(normalized_new) != len(set(normalized_new)) or any(
+                    name in normalized_existing for name in normalized_new
+                ):
                     code = "output_column_conflict"
             reject(index, op, code)
             continue
