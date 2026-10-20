@@ -123,3 +123,62 @@ python -m researchops_clean propose --input data.csv --output-dir artifacts/clea
 `map_values` 只认映射里写明的键，已经是规范写法的值也要写入映射，例如 `"男": "男"`；否则在草稿使用的 `keep_and_flag` 策略下仍会被标为未映射。填写后，按问题卡片中的步骤编号逐项审核，再沿用上文的 `approve`、`apply`、`verify` 命令。
 
 支持的平台为 **Windows 和 Linux**。在 macOS 上，`apply` 会因为缺少“禁止覆盖的原子改名”而拒绝执行。
+
+## 本机模型提案
+
+`model-propose` 在规则式草稿后追加模型建议。它先从输入 CSV 在内存中重新生成隐私过滤后的剖析和问题卡片，不读取磁盘上已有或人工修改过的剖析、草稿。原有六个命令继续独立运行；只有显式运行 `model-propose` 才会发送模型请求。
+
+以下为将来连接本机服务的用法，将 `local-model` 替换为实际模型名。Ollama 示例：
+
+```sh
+python -m researchops_clean model-propose --input data.csv --endpoint http://127.0.0.1:11434/v1 --model local-model --output-dir artifacts/cleaning/model-ollama-01
+```
+
+vLLM 示例：
+
+```sh
+python -m researchops_clean model-propose --input data.csv --endpoint http://127.0.0.1:8000/v1 --model local-model --output-dir artifacts/cleaning/model-vllm-01
+```
+
+**本版本只允许本机地址 `127.0.0.1`、`::1` 或 `localhost`，不支持 Key，请勿指向任何在线 API 或内网服务器。** 仅接受 HTTP 或 HTTPS，地址不能包含用户名、密码、查询串或片段。请求忽略系统代理，不带 Authorization 头，不跟随跳转，只发送一次且不重试。
+
+可选参数如下：
+
+| 参数 | 默认值 | 说明 |
+|---|---|---|
+| `--encoding` | `utf-8-sig` | 与 `apply` 相同的四种输入编码 |
+| `--timeout` | `120` | 请求超时秒数，最大 `600` |
+| `--max-tokens` | `4096` | 响应 token 上限 |
+| `--response-format` | `json_schema` | 可改为 `none`，省略请求中的结构化输出约束 |
+
+建议使用支持结构化输出的服务，并关闭模型的“思考模式”。无论是否发送 schema，回答都必须是完整的 JSON 对象；夹杂思考文字、Markdown 代码围栏或其他说明都会被拒绝。
+
+模型只看到 `model_profile`、规则式问题卡片，以及除 `range_check` 以外的 8 个操作的名称、版本和参数 schema。内部剖析、整行数据、输入文件名和本机路径都不发送；请求上限为 256 KiB，响应上限为 1 MiB。模型不能提出数值界限、删除行或填补缺失的方案。
+
+发送前的隐私检查按本次授权调整为：解码请求中的每个 JSON 键和字符串值后，分别调用现有 `find_sensitive_types`，固定说明也接受同样检查；原有敏感正则不变。只有问题卡片的 `evidence.pointer` 可以豁免 `file_path`，且必须能在本次 `model_profile` 中解析，并与对应 `evidence.value` 完全一致。该字段的其余四类敏感检测仍然执行；不满足条件时按普通字符串完整扫描。
+
+模型最多提出 30 条建议。每条建议分别校验操作、参数、列引用、取值来源和理由；与已有步骤完全相同的建议只记为重复。固定词表中的值若未出现在该列公开取值中，会附上 `value_unverified` 警告，须人在本机核对。接受的步骤编号为 `M1`、`M2` 等，理由以“【模型建议】”开头，**所有规则步骤和模型步骤仍为 `pending`，必须人工补全、审核并通过 `approve` 才能执行**。
+
+输出目录与 `propose` 使用相同规则：在 `artifacts/` 下先写临时目录，全部完成后整体发布，不覆盖已有目录。
+
+| 文件 | 内容 |
+|---|---|
+| `model_profile.json`、`issues.json` | 本次重新生成的模型剖析和规则问题卡片 |
+| `model_request.json` | 实际发送的请求正文 |
+| `model_response.json` 或 `model_response.txt` | 收到的响应正文；无响应时不生成 |
+| `model_proposals.json` | 接受、拒绝、重复的建议及警告、原因 |
+| `draft_recipe.json` | 规则步骤加接受的模型步骤，仅成功时生成 |
+| `run_record.json` | 本机地址的主机和端口、模型、请求参数、用量、耗时、计数、文件哈希、状态及账本核验结果 |
+| `ledger.sqlite3` | 一次运行和模型调用的审计记录，不记提示词或回答原文 |
+
+账本关闭且 `verify_chain` 通过后才发布，输出不遗留 `-wal`、`-shm` 文件。连接、超时、HTTP 或模型回答失败时，也会保留请求、已有响应、失败记录和账本，便于本机核查，但不生成可继续审批的草稿。
+
+若发送后本地保存或发布本身失败，退出码仍为 `3`，错误说明会指出未能完成保存。
+
+| 退出码 | 含义 |
+|---|---|
+| `0` | 提案流程成功；允许有建议被拒绝或判为重复 |
+| `2` | 发送前拒绝，例如参数、地址、输入、隐私检查或输出目录不符合要求 |
+| `3` | 请求失败、回答不可用或发送后保存失败；常规调用失败会保存证据 |
+
+**测试和 CI 从不启动或调用真实模型。** 所有涉及 HTTP 的测试只连接测试自己在 `127.0.0.1` 随机端口启动的假服务，使用手写合成输入和预设响应；本次实现和验收也不调用 Ollama、vLLM 或在线 API。

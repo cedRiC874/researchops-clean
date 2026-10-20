@@ -55,6 +55,17 @@ def _parser() -> argparse.ArgumentParser:
         profile_command.add_argument("--k", default=5, type=int)
         profile_command.add_argument("--encoding", default="utf-8-sig",
                                      choices=("utf-8-sig", "utf-8", "gbk", "gb18030"))
+    model_propose = commands.add_parser("model-propose", help="请求本机模型提出待批准的清洗步骤")
+    model_propose.add_argument("--input", required=True, type=Path)
+    model_propose.add_argument("--endpoint", required=True)
+    model_propose.add_argument("--model", required=True)
+    model_propose.add_argument("--output-dir", required=True, type=Path)
+    model_propose.add_argument("--encoding", default="utf-8-sig",
+                               choices=("utf-8-sig", "utf-8", "gbk", "gb18030"))
+    model_propose.add_argument("--timeout", default=120, type=float)
+    model_propose.add_argument("--max-tokens", default=4096, type=int)
+    model_propose.add_argument("--response-format", default="json_schema",
+                               choices=("json_schema", "none"))
     return parser
 
 
@@ -84,6 +95,27 @@ def _save_approved(path: Path, recipe: dict) -> None:
 def main(argv: list[str] | None = None) -> int:
     try:
         args = _parser().parse_args(argv)
+        if args.command == "model-propose":
+            from .model_proposer import ModelProposerError, run_model_proposal
+
+            try:
+                result = run_model_proposal(
+                    args.input, args.endpoint, args.model, args.output_dir,
+                    project_root=Path.cwd(), encoding=args.encoding,
+                    timeout=args.timeout, max_tokens=args.max_tokens,
+                    response_format=args.response_format,
+                )
+            except ModelProposerError as exc:
+                if exc.exit_code == 3:
+                    _emit({"status": "error", "error_code": exc.code,
+                           "message": exc.message}, error=True)
+                    return 3
+                raise CLIError(exc.code, exc.message) from None
+            summary = {key: result.record[key] for key in ("status", "run_id", "counts")}
+            if "error_code" in result.record:
+                summary["error_code"] = result.record["error_code"]
+            _emit(summary)
+            return result.exit_code
         if args.command in ("profile", "propose"):
             from .profile_workflow import ProfileWorkflowError, run_profile
 
