@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from researchops_clean.csv_io import CSVError
 from researchops_clean.issues import (
     _INVALID_VALUES, _QUALITATIVE_VALUES, propose_from_profile,
 )
@@ -146,43 +147,20 @@ class ModelValidationTests(unittest.TestCase):
         self.assertEqual(report["duplicates"][0]["duplicate_of"], "M1")
         self.assertEqual(len(draft["steps"]), len(self.rules["steps"]) + 2)
 
-    def test_distinct_unicode_column_spellings_are_not_deduplicated(self):
+    def test_nfc_equivalent_columns_are_rejected_before_proposals(self):
         composed, decomposed = "\u00e9", "e\u0301"
         self.assertNotEqual(composed, decomposed)
-        proposals = [
-            {"op": "normalize_text", "params": {"column": column}, "reason": "规范文本"}
-            for column in (composed, decomposed)
-        ]
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "synthetic.csv"
-            for first_value, accepted_count, duplicate_count in (("A", 2, 0), (" A ", 1, 1)):
+            for first_value in ("A", " A "):
                 with self.subTest(first_value=first_value):
                     source.write_text(
                         f"{composed},{decomposed}\n" + f"{first_value},B\n" * 5,
                         encoding="utf-8", newline="\n",
                     )
-                    _, model = profile_csv(source)
-                    issues, rules = propose_from_profile(model)
-                    report, _ = validate_proposals(
-                        {"proposals": proposals}, model, issues, rules,
-                    )
-                    self.assertEqual(len(report["accepted"]), accepted_count)
-                    self.assertEqual(len(report["duplicates"]), duplicate_count)
-                    self.assertEqual(report["rejected"], [])
-                    if duplicate_count:
-                        self.assertEqual(report["duplicates"][0]["index"], 1)
-                        self.assertEqual(report["accepted"][0]["step"]["params"]["column"],
-                                         decomposed)
-                        duplicate_rule = next(
-                            step for step in rules["steps"]
-                            if step["step_id"] == report["duplicates"][0]["duplicate_of"]
-                        )
-                        self.assertEqual(duplicate_rule["params"]["column"], composed)
-                    else:
-                        self.assertEqual(
-                            [item["step"]["params"]["column"] for item in report["accepted"]],
-                            [composed, decomposed],
-                        )
+                    with self.assertRaises(CSVError) as raised:
+                        profile_csv(source)
+                    self.assertEqual(raised.exception.code, "ambiguous_column_names")
 
     def test_output_conflicts_and_rejected_steps_do_not_create_columns(self):
         proposals = [

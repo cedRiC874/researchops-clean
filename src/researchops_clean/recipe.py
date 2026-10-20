@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import re
 from datetime import datetime, timezone
@@ -74,6 +75,7 @@ RECIPE_SCHEMA: dict[str, Any] = {
                             "status": {"enum": ["pending", "approved", "rejected"]},
                             "reviewer": _REVIEWER_SCHEMA,
                             "decided_at_utc": {"type": "string"},
+                            "content_sha256": {"type": "string"},
                         },
                         "if": {
                             "properties": {"status": {"const": "approved"}},
@@ -155,6 +157,36 @@ def _validate_operation(step: dict[str, Any], columns: list[str]) -> list[str]:
         raise RecipeError(exc.code, exc.message) from None
 
 
+def step_content_hash(recipe: dict[str, Any], step: dict[str, Any]) -> str:
+    """Bind exact Unicode input and executable content, excluding reason."""
+    content = {
+        "input_sha256": recipe["input"]["sha256"],
+        "step_id": step["step_id"],
+        "op": step["op"],
+        "params": step["params"],
+    }
+    # The ledger normalizes NFC; execution distinguishes literal column names
+    # and mapping strings, so approval must preserve their original code points.
+    encoded = json.dumps(
+        content, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def validate_approval_content(recipe: dict[str, Any]) -> None:
+    """Check approved steps in a structurally validated recipe."""
+    mismatched = [
+        step["step_id"] for step in recipe["steps"]
+        if step["approval"]["status"] == "approved"
+        and step["approval"].get("content_sha256") != step_content_hash(recipe, step)
+    ]
+    if mismatched:
+        raise RecipeError(
+            "approval_content_mismatch",
+            "以下步骤的批准内容哈希缺失或不匹配，必须重新批准：" + "、".join(mismatched) + "。",
+        )
+
+
 def validate_steps(
     recipe: dict[str, Any], require_approved: bool = True
 ) -> None:
@@ -169,6 +201,7 @@ def validate_steps(
             raise RecipeError(
                 "recipe_step_not_approved", "以下步骤尚未批准：" + "、".join(unapproved) + "。"
             )
+    validate_approval_content(recipe)
     columns = list(recipe["input"]["columns"])
     for step in recipe["steps"]:
         columns.extend(_validate_operation(step, columns))
@@ -214,6 +247,7 @@ def approve_recipe(
                 "status": "approved",
                 "reviewer": reviewer,
                 "decided_at_utc": timestamp,
+                "content_sha256": step_content_hash(approved, step),
             }
         else:
             # A draft may declare a future column before its params are complete.

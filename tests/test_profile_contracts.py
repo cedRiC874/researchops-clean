@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 from researchops_clean.__main__ import main
 from researchops_clean.ops import execute_operation, validate_operation
+from researchops_clean.recipe import step_content_hash
 from researchops_clean.sensitive_patterns import find_sensitive_types
 
 
@@ -90,6 +91,8 @@ class MappingApprovalContracts(unittest.TestCase):
                 "approval": approval,
             }],
         }
+        if approved:
+            approval["content_sha256"] = step_content_hash(recipe, recipe["steps"][0])
         self.recipe_path.write_text(
             json.dumps(recipe, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n"
         )

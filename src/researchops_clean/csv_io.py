@@ -6,6 +6,7 @@ import csv
 import hashlib
 import io
 import threading
+import unicodedata
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -36,8 +37,9 @@ class Table:
 def _validate_columns(columns: Sequence[str]) -> None:
     if not columns or any(not isinstance(name, str) or not name.strip() for name in columns):
         raise CSVError("csv_header_invalid", "CSV 表头不能包含空列名。")
-    if len(set(columns)) != len(columns):
-        raise CSVError("csv_header_invalid", "CSV 表头不能包含重复列名。")
+    normalized = [unicodedata.normalize("NFC", name) for name in columns]
+    if len(set(normalized)) != len(columns):
+        raise CSVError("ambiguous_column_names", "CSV 表头不能包含 NFC 归一化后相同的列名。")
 
 
 def read_csv(path: Path, encoding: str = "utf-8-sig") -> Table:

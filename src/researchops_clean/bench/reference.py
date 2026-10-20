@@ -4,7 +4,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from .. import ops
-from ..recipe import validate_recipe, validate_steps
+from ..recipe import approve_recipe, validate_steps
 from .common import FIXED_TIMESTAMP
 
 
@@ -70,10 +70,7 @@ def build_reference_recipe(input_sha256: str) -> tuple[dict, dict]:
         steps.append({
             "step_id": f"B{len(steps) + 1}", "op": op, "params": params,
             "reason": "【仅用于评测】" + reason,
-            "approval": {
-                "status": "approved", "reviewer": "bench-reference",
-                "decided_at_utc": FIXED_TIMESTAMP,
-            },
+            "approval": {"status": "pending"},
         })
 
     add("normalize_text", {"column": "结果"}, "恢复合成结果的全角字符和首尾空白。")
@@ -117,6 +114,8 @@ def build_reference_recipe(input_sha256: str) -> tuple[dict, dict]:
         "schema_version": "cleaning-recipe/1",
         "input": {"sha256": input_sha256, "columns": list(COLUMNS)}, "steps": steps,
     }
-    validate_recipe(recipe)
+    recipe = approve_recipe(
+        recipe, [step["step_id"] for step in steps], "bench-reference", FIXED_TIMESTAMP,
+    )
     validate_steps(recipe)
     return recipe, dict(REFERENCE_COLUMN_MAP)
