@@ -12,12 +12,12 @@ class OutputDirectoryError(ValueError):
         self.message = message
 
 
-def validate_output_directory(project_root: Path, session_directory: Path) -> Path:
+def validate_output_directory(project_root: Path, output_directory: Path) -> Path:
     artifacts_root = (project_root / "artifacts").resolve()
-    resolved = session_directory.resolve()
+    resolved = output_directory.resolve()
     if resolved == artifacts_root or not resolved.is_relative_to(artifacts_root):
         raise OutputDirectoryError(
-            "self_pilot_path_not_allowed",
-            "Self-pilot session 必须位于项目 artifacts 的独立子目录。",
+            "output_path_not_allowed",
+            "输出目录必须是项目 artifacts/ 下的独立子目录。",
         )
     return resolved
