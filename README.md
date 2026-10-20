@@ -155,7 +155,7 @@ python -m researchops_clean model-propose --input data.csv --endpoint http://127
 
 模型只看到 `model_profile`、规则式问题卡片，以及除 `range_check` 以外的 8 个操作的名称、版本和参数 schema。内部剖析、整行数据、输入文件名和本机路径都不发送；请求上限为 256 KiB，响应上限为 1 MiB。模型不能提出数值界限、删除行或填补缺失的方案。
 
-发送前的隐私检查按本次授权调整为：解码请求中的每个 JSON 键和字符串值后，分别调用现有 `find_sensitive_types`，固定说明也接受同样检查；原有敏感正则不变。只有问题卡片的 `evidence.pointer` 可以豁免 `file_path`，且必须能在本次 `model_profile` 中解析，并与对应 `evidence.value` 完全一致。该字段的其余四类敏感检测仍然执行；不满足条件时按普通字符串完整扫描。
+发送前的隐私检查按本次授权调整为：解码请求中的每个 JSON 键和字符串值后，先检查单个字段长度；超过 2,000 个字符时，以 `request_field_too_long` 拒绝发送并返回退出码 `2`。长度为 2,000 或以下时，照常完整调用现有 `find_sensitive_types`，固定说明也接受同样检查；原有敏感正则不变。`user.content` 作为 JSON 容器先解码，再逐个检查其中的键和字符串值，不把整个容器算作一个字段。只有问题卡片的 `evidence.pointer` 可以豁免 `file_path`，且必须能在本次 `model_profile` 中解析，并与对应 `evidence.value` 完全一致。该字段的其余四类敏感检测仍然执行；不满足条件时按普通字符串完整扫描。
 
 模型最多提出 30 条建议。每条建议分别校验操作、参数、列引用、取值来源和理由；与已有步骤完全相同的建议只记为重复。固定词表中的值若未出现在该列公开取值中，会附上 `value_unverified` 警告，须人在本机核对。接受的步骤编号为 `M1`、`M2` 等，理由以“【模型建议】”开头，**所有规则步骤和模型步骤仍为 `pending`，必须人工补全、审核并通过 `approve` 才能执行**。
 

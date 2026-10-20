@@ -21,6 +21,7 @@ from .sensitive_patterns import find_sensitive_types
 
 MAX_REQUEST_BYTES = 256 * 1024
 MAX_RESPONSE_BYTES = 1024 * 1024
+MAX_REQUEST_FIELD_CHARS = 2000
 
 PROPOSALS_SCHEMA = {
     "type": "object",
@@ -228,6 +229,10 @@ def encode_and_validate_request(
     forbidden = tuple(value for value in (input_filename, *forbidden_paths) if value)
 
     def check(text: str, exempt_pointer: bool = False) -> None:
+        if len(text) > MAX_REQUEST_FIELD_CHARS:
+            raise ModelClientError(
+                "request_field_too_long", "请求中单个键或字符串值超过 2,000 个字符，已拒绝发送。",
+            )
         if any(value in text for value in forbidden):
             raise ModelClientError("model_request_sensitive", "请求包含输入文件名或本机路径，已拒绝发送。")
         categories = find_sensitive_types(text)
