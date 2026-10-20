@@ -79,7 +79,11 @@ _SCHEMAS = {
     "map_values": _object(
         {
             "column": _COLUMN,
-            "mapping": {"type": "object", "minProperties": 1, "additionalProperties": _STRING},
+            "mapping": {
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": {"type": "string", "minLength": 1},
+            },
             "on_unmapped": {"enum": ["keep", "keep_and_flag", "error"]},
         }
     ),

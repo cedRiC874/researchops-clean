@@ -26,3 +26,8 @@ _PATTERNS = {
     ),
     "api_key": re.compile(r"(?<![A-Za-z0-9_])sk-[A-Za-z0-9._-]+", re.IGNORECASE),
 }
+
+
+def find_sensitive_types(text: str) -> list[str]:
+    """Return matched categories once each in the fixed pattern order."""
+    return [name for name, pattern in _PATTERNS.items() if pattern.search(text)]

@@ -45,6 +45,16 @@ def _parser() -> argparse.ArgumentParser:
     verify.add_argument("--input", required=True, type=Path)
     verify.add_argument("--recipe", required=True, type=Path)
     verify.add_argument("--run-dir", required=True, type=Path)
+    for name, help_text in (
+        ("profile", "生成本机剖析与模型可见剖析"),
+        ("propose", "生成剖析、问题清单和待批准配方草稿"),
+    ):
+        profile_command = commands.add_parser(name, help=help_text)
+        profile_command.add_argument("--input", required=True, type=Path)
+        profile_command.add_argument("--output-dir", required=True, type=Path)
+        profile_command.add_argument("--k", default=5, type=int)
+        profile_command.add_argument("--encoding", default="utf-8-sig",
+                                     choices=("utf-8-sig", "utf-8", "gbk", "gb18030"))
     return parser
 
 
@@ -74,6 +84,19 @@ def _save_approved(path: Path, recipe: dict) -> None:
 def main(argv: list[str] | None = None) -> int:
     try:
         args = _parser().parse_args(argv)
+        if args.command in ("profile", "propose"):
+            from .profile_workflow import ProfileWorkflowError, run_profile
+
+            if args.k < 5:
+                raise CLIError("profile_invalid_k", "k 必须是大于或等于 5 的整数。")
+            try:
+                summary = run_profile(args.input, args.output_dir, project_root=Path.cwd(),
+                                      k=args.k, encoding=args.encoding,
+                                      propose=args.command == "propose")
+            except ProfileWorkflowError as exc:
+                raise CLIError(exc.code, exc.message) from None
+            _emit({"status": "success", **summary})
+            return 0
         if args.command == "ops":
             _emit(operation_catalog())
             return 0
