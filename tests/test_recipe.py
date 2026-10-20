@@ -221,6 +221,11 @@ class RecipeTests(unittest.TestCase):
         reversed_recipe["steps"].reverse()
         with self.assertRaises(RecipeError) as raised:
             validate_steps(reversed_recipe)
+        self.assertEqual(raised.exception.code, "approval_content_mismatch")
+        for step in reversed_recipe["steps"]:
+            step["approval"]["content_sha256"] = step_content_hash(reversed_recipe, step)
+        with self.assertRaises(RecipeError) as raised:
+            validate_steps(reversed_recipe)
         self.assertEqual(raised.exception.code, "column_missing")
 
     def test_partial_approval_can_reference_unfinished_preceding_output(self):

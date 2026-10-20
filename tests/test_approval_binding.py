@@ -103,6 +103,7 @@ class ApprovalBindingTests(unittest.TestCase):
         for step in self.pending["steps"]:
             content = {
                 "input_sha256": self.pending["input"]["sha256"],
+                "step_order": [item["step_id"] for item in self.pending["steps"]],
                 "step_id": step["step_id"],
                 "op": step["op"],
                 "params": step["params"],
@@ -168,6 +169,7 @@ class ApprovalBindingTests(unittest.TestCase):
                     step = recipe["steps"][0]
                     return {
                         "input_sha256": recipe["input"]["sha256"],
+                        "step_order": [item["step_id"] for item in recipe["steps"]],
                         "step_id": step["step_id"], "op": step["op"], "params": step["params"],
                     }
 

@@ -161,6 +161,7 @@ def step_content_hash(recipe: dict[str, Any], step: dict[str, Any]) -> str:
     """Bind exact Unicode input and executable content, excluding reason."""
     content = {
         "input_sha256": recipe["input"]["sha256"],
+        "step_order": [item["step_id"] for item in recipe["steps"]],
         "step_id": step["step_id"],
         "op": step["op"],
         "params": step["params"],
@@ -183,7 +184,8 @@ def validate_approval_content(recipe: dict[str, Any]) -> None:
     if mismatched:
         raise RecipeError(
             "approval_content_mismatch",
-            "以下步骤的批准内容哈希缺失或不匹配，必须重新批准：" + "、".join(mismatched) + "。",
+            "以下步骤的批准哈希缺失或不匹配，可能在批准后改了步骤内容、顺序或步骤集合，"
+            "必须重新批准：" + "、".join(mismatched) + "。",
         )
 
 
