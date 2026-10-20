@@ -1,0 +1,21 @@
+{
+  "raw_hash_bom": "编号,结果\r\n0012345,112.0\r\n0000000,\r\n",
+  "chinese": "编号,结果\n001,阴性\n",
+  "invalid_bytes_hex": "636f6c756d6e0aff0a",
+  "invalid_headers": ["", "\n", "name,\n", "name, 　\n", "name,name\n"],
+  "nonrectangular": ["a,b\none\n", "a,b\none,two,three\n", "a,b\n\n"],
+  "malformed_quotes": "a,b\n\"unterminated,two\n",
+  "size_boundary": "a\n1\n",
+  "row_boundary": "a\n\"one\nline\"\ntwo\n",
+  "long_field_header": "a\n",
+  "long_field_seed": "x",
+  "writer_columns": ["编号", "内容"],
+  "writer_rows": [
+    {"内容": "中文,\"引号\"\n新行", "编号": "001"},
+    {"编号": "002", "内容": ""}
+  ],
+  "writer_expected": "编号,内容\n001,\"中文,\"\"引号\"\"\n新行\"\n002,\n",
+  "carriage_return_columns": ["编号", "内容"],
+  "carriage_return_rows": [{"编号": "001", "内容": "第一行\r第二行\r\n第三行"}],
+  "carriage_return_expected": "编号,内容\n001,\"第一行\r第二行\r\n第三行\"\n"
+}

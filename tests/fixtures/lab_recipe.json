@@ -1,0 +1,86 @@
+{
+  "schema_version": "cleaning-recipe/1",
+  "input": {
+    "sha256": "d665229caa247ab1d93f69bf2645c943adcbc885661e32923f0f629ea55657f8",
+    "columns": ["住院号", "年龄", "性别", "采样时间", "项目", "结果", "单位"]
+  },
+  "steps": [
+    {
+      "step_id": "S1",
+      "op": "normalize_text",
+      "params": {"column": "结果"},
+      "reason": "去除首尾空白并统一全角 ASCII 字符",
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z"}
+    },
+    {
+      "step_id": "S2",
+      "op": "sentinel_to_missing",
+      "params": {"column": "年龄", "values": ["999"]},
+      "reason": "将约定的年龄哨兵值记为缺失",
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z"}
+    },
+    {
+      "step_id": "S3",
+      "op": "sentinel_to_missing",
+      "params": {"column": "采样时间", "values": ["1900-01-01"]},
+      "reason": "将约定的日期哨兵值记为缺失",
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z"}
+    },
+    {
+      "step_id": "S4",
+      "op": "map_values",
+      "params": {"column": "性别", "mapping": {"M": "男", "1": "男", "F": "女", "2": "女"}, "on_unmapped": "keep_and_flag"},
+      "reason": "统一性别编码，保留并标记未映射值",
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z"}
+    },
+    {
+      "step_id": "S5",
+      "op": "map_values",
+      "params": {"column": "项目", "mapping": {"HGB": "血红蛋白", "Hb": "血红蛋白"}, "on_unmapped": "keep"},
+      "reason": "统一血红蛋白别名，其他指标保持原样",
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z"}
+    },
+    {
+      "step_id": "S6",
+      "op": "parse_date",
+      "params": {"column": "采样时间", "output_column": "采样日期", "formats": ["%Y/%m/%d %H:%M", "%Y%m%d", "%Y-%m-%d"], "output": "date", "excel_serial": {"enabled": true, "min": 20000, "max": 60000}},
+      "reason": "在新列记录解析后的采样日期",
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z"}
+    },
+    {
+      "step_id": "S7",
+      "op": "parse_age_cn",
+      "params": {"column": "年龄", "outputs": {"years": "年龄_岁", "months": "年龄_月", "days": "年龄_天"}},
+      "reason": "分别提取年龄的岁、月、天分量",
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z"}
+    },
+    {
+      "step_id": "S8",
+      "op": "parse_lab_result",
+      "params": {"column": "结果", "qualitative_values": ["阴性", "阳性", "+", "++", "+++"], "invalid_values": ["溶血", "标本不合格"], "outputs": {"value": "结果数值", "qualifier": "结果限定", "qualitative": "定性结果", "invalid": "结果无效"}},
+      "reason": "分开记录数值、限定符、定性结果和无效状态",
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z"}
+    },
+    {
+      "step_id": "S9",
+      "op": "convert_unit",
+      "params": {"value_column": "结果数值", "unit_column": "单位", "conversions": [{"from": "g/dL", "to": "g/L", "factor": "10"}], "where": {"column": "项目", "equals": "血红蛋白"}},
+      "reason": "将血红蛋白的 g/dL 换算为 g/L",
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z"}
+    },
+    {
+      "step_id": "S10",
+      "op": "range_check",
+      "params": {"column": "结果数值", "min": "30", "max": "250", "where": {"column": "项目", "equals": "血红蛋白"}},
+      "reason": "按合成示例界限标记血红蛋白异常值，不改变取值",
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z"}
+    },
+    {
+      "step_id": "S11",
+      "op": "flag_duplicates",
+      "params": {"key_columns": ["住院号", "采样日期", "项目", "结果数值", "单位"]},
+      "reason": "按清洗后的关键列标记重复记录，不删除行",
+      "approval": {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": "2026-10-21T08:00:00Z"}
+    }
+  ]
+}
