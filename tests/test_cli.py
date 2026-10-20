@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from researchops_clean import engine
 from researchops_clean.__main__ import main
-from researchops_clean.recipe import recipe_hash
+from researchops_clean.recipe import approve_recipe, recipe_hash
 
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -181,6 +181,11 @@ class CLITests(unittest.TestCase):
         import hashlib
         recipe = json.loads(self.recipe.read_text(encoding="utf-8"))
         recipe["input"]["sha256"] = hashlib.sha256(self.input.read_bytes()).hexdigest()
+        approval = recipe["steps"][0]["approval"]
+        recipe = approve_recipe(
+            recipe, [step["step_id"] for step in recipe["steps"]],
+            approval["reviewer"], approval["decided_at_utc"],
+        )
         self.write_recipe(recipe)
         code, _, stderr = self.apply("--encoding", "gbk")
         self.assertEqual(code, 0, stderr)

@@ -196,6 +196,11 @@ class BenchmarkGenerationTests(unittest.TestCase):
             self.assertEqual(step["approval"], {
                 "status": "approved", "reviewer": "bench-reference",
                 "decided_at_utc": FIXED_TIMESTAMP,
+                "content_sha256": hashlib.sha256(json.dumps({
+                    "input_sha256": recipe["input"]["sha256"],
+                    "step_id": step["step_id"], "op": step["op"], "params": step["params"],
+                }, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+                    allow_nan=False).encode("utf-8")).hexdigest(),
             })
         sex = next(step["params"]["mapping"] for step in recipe["steps"]
                    if step["op"] == "map_values" and step["params"]["column"] == "性别")
@@ -217,7 +222,22 @@ class BenchmarkGenerationTests(unittest.TestCase):
         first_recipe = self.load("reference_recipe.json")
         second_recipe = self.load("reference_recipe.json", second)
         self.assertNotEqual(first_recipe["input"]["sha256"], second_recipe["input"]["sha256"])
-        self.assertEqual(first_recipe["steps"], second_recipe["steps"])
+        def approved_content(recipe):
+            steps = copy.deepcopy(recipe["steps"])
+            for step in steps:
+                recorded = step["approval"].pop("content_sha256")
+                self.assertEqual(recorded, hashlib.sha256(json.dumps({
+                    "input_sha256": recipe["input"]["sha256"],
+                    "step_id": step["step_id"], "op": step["op"], "params": step["params"],
+                }, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+                    allow_nan=False).encode("utf-8")).hexdigest())
+            return steps
+
+        self.assertEqual(approved_content(first_recipe), approved_content(second_recipe))
+        for first, second_step in zip(first_recipe["steps"], second_recipe["steps"]):
+            self.assertNotEqual(
+                first["approval"]["content_sha256"], second_step["approval"]["content_sha256"],
+            )
         mapping = next(step["params"]["mapping"] for step in first_recipe["steps"]
                        if step["op"] == "map_values" and step["params"]["column"] == "结果数值")
         for config in PROJECT_CONFIG.values():
@@ -227,7 +247,7 @@ class BenchmarkGenerationTests(unittest.TestCase):
                 self.assertEqual(mapping[fixed], fixed)
                 self.assertEqual(mapping[canonical], fixed)
         recipe, column_map = build_reference_recipe("a" * 64)
-        self.assertEqual(recipe["steps"], first_recipe["steps"])
+        self.assertEqual(approved_content(recipe), approved_content(first_recipe))
         self.assertEqual(column_map, REFERENCE_COLUMN_MAP)
 
     def test_zero_rates_give_exact_clean_copy_and_duplicate_only_respects_zero_other_rates(self):

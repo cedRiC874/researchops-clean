@@ -12,6 +12,7 @@ from researchops_clean.recipe import (
     approve_recipe,
     load_recipe,
     recipe_hash,
+    step_content_hash,
     validate_recipe,
     validate_steps,
 )
@@ -145,7 +146,8 @@ class RecipeTests(unittest.TestCase):
         self.assertEqual(approved["steps"][1], recipe["steps"][1])
         self.assertEqual(
             approved["steps"][0]["approval"],
-            {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": STAMP},
+            {"status": "approved", "reviewer": "reviewer-a", "decided_at_utc": STAMP,
+             "content_sha256": step_content_hash(recipe, recipe["steps"][0])},
         )
         self.assertNotEqual(recipe_hash(approved), recipe_hash(recipe))
         approved["steps"][1]["params"]["column"] = "年龄"
@@ -192,7 +194,8 @@ class RecipeTests(unittest.TestCase):
                 recipe["steps"][0]["op"] = op
                 recipe["steps"][0]["params"] = params
                 recipe["steps"][0]["approval"] = {
-                    "status": "approved", "reviewer": "reviewer-a", "decided_at_utc": STAMP
+                    "status": "approved", "reviewer": "reviewer-a", "decided_at_utc": STAMP,
+                    "content_sha256": step_content_hash(recipe, recipe["steps"][0]),
                 }
                 validate_recipe(recipe)
                 with self.assertRaises(RecipeError) as raised:

@@ -14,7 +14,7 @@ from researchops_clean import engine
 from researchops_clean.engine import EngineError, apply_recipe, verify_run
 from researchops_clean.ops import OperationError
 from researchops_clean.paths import OutputDirectoryError, validate_output_directory
-from researchops_clean.recipe import RecipeError
+from researchops_clean.recipe import RecipeError, step_content_hash
 
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -37,9 +37,14 @@ class RecipeEngineTests(unittest.TestCase):
         self.recipe = FIXTURES / "lab_recipe.json"
         self.target = self.artifacts / "run"
 
-    def recipe_copy(self, mutate):
+    def recipe_copy(self, mutate, *, rebind=False):
         value = json.loads(self.recipe.read_text(encoding="utf-8"))
         mutate(value)
+        if rebind:
+            # Synthetic fixtures for tests targeting validation after approval.
+            for step in value["steps"]:
+                if step["approval"]["status"] == "approved":
+                    step["approval"]["content_sha256"] = step_content_hash(value, step)
         target = self.root / "recipe.json"
         target.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8", newline="\n")
         return target
@@ -172,25 +177,29 @@ class RecipeEngineTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, "recipe_step_not_approved")
 
     def test_unknown_operation_rejects_recipe(self):
-        recipe = self.recipe_copy(lambda obj: obj["steps"][0].update(op="arbitrary_code"))
+        recipe = self.recipe_copy(lambda obj: obj["steps"][0].update(op="arbitrary_code"), rebind=True)
         with self.assertRaises((RecipeError, OperationError)) as caught:
             self.apply(recipe)
         self.assertEqual(caught.exception.code, "recipe_invalid")
 
     def test_invalid_parameters_reject_recipe(self):
-        recipe = self.recipe_copy(lambda obj: obj["steps"][8]["params"]["conversions"][0].update(factor=10))
+        recipe = self.recipe_copy(
+            lambda obj: obj["steps"][8]["params"]["conversions"][0].update(factor=10), rebind=True,
+        )
         with self.assertRaises((RecipeError, OperationError)) as caught:
             self.apply(recipe)
         self.assertEqual(caught.exception.code, "recipe_invalid")
 
     def test_input_hash_mismatch(self):
-        recipe = self.recipe_copy(lambda obj: obj["input"].update(sha256="0" * 64))
+        recipe = self.recipe_copy(lambda obj: obj["input"].update(sha256="0" * 64), rebind=True)
         with self.assertRaises(EngineError) as caught:
             self.apply(recipe)
         self.assertEqual(caught.exception.code, "input_hash_mismatch")
 
     def test_missing_column_rejects_recipe(self):
-        recipe = self.recipe_copy(lambda obj: obj["steps"][0]["params"].update(column="不存在的列"))
+        recipe = self.recipe_copy(
+            lambda obj: obj["steps"][0]["params"].update(column="不存在的列"), rebind=True,
+        )
         with self.assertRaises((RecipeError, OperationError)) as caught:
             self.apply(recipe)
         self.assertEqual(caught.exception.code, "column_missing")
@@ -377,7 +386,9 @@ class RecipeEngineTests(unittest.TestCase):
         data = self.input.read_text(encoding="utf-8").encode("gbk")
         source = self.root / "gbk.csv"
         source.write_bytes(data)
-        recipe = self.recipe_copy(lambda obj: obj["input"].update(sha256=hashlib.sha256(data).hexdigest()))
+        recipe = self.recipe_copy(
+            lambda obj: obj["input"].update(sha256=hashlib.sha256(data).hexdigest()), rebind=True,
+        )
         manifest = self.apply(recipe, input_path=source, encoding="gbk")
         self.assertEqual(manifest["input"]["encoding"], "gbk")
         self.assertEqual(
@@ -396,7 +407,9 @@ class RecipeEngineTests(unittest.TestCase):
         data = stream.getvalue().encode("utf-8")
         source = self.root / "formula.csv"
         source.write_bytes(data)
-        recipe = self.recipe_copy(lambda obj: obj["input"].update(sha256=hashlib.sha256(data).hexdigest()))
+        recipe = self.recipe_copy(
+            lambda obj: obj["input"].update(sha256=hashlib.sha256(data).hexdigest()), rebind=True,
+        )
         manifest = self.apply(recipe, input_path=source)
         cleaned = csv_rows(self.target / "cleaned.csv")
         self.assertEqual(cleaned[0]["结果"], "=SUM(A1)")

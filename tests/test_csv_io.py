@@ -56,7 +56,10 @@ class CSVIOTests(unittest.TestCase):
                 self.input.write_bytes(raw.encode("utf-8"))
                 with self.assertRaises(CSVError) as raised:
                     read_csv(self.input)
-                self.assertEqual(raised.exception.code, "csv_header_invalid")
+                expected_code = (
+                    "ambiguous_column_names" if raw == "name,name\n" else "csv_header_invalid"
+                )
+                self.assertEqual(raised.exception.code, expected_code)
 
     def test_nonrectangular_and_blank_records_are_rejected(self):
         for raw in CASES["nonrectangular"]:

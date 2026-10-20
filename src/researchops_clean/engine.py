@@ -23,7 +23,9 @@ from .csv_io import CSVError, Table, csv_bytes, read_csv
 from .ledger import sha256_json
 from .ops import OperationError, execute_operation, is_number, operation_catalog
 from .paths import OutputDirectoryError, validate_output_directory
-from .recipe import RecipeError, load_recipe, recipe_hash, validate_steps
+from .recipe import (
+    RecipeError, load_recipe, recipe_hash, validate_approval_content, validate_steps,
+)
 
 
 OUTPUT_NAMES = ("cleaned.csv", "changes.csv", "flags.csv")
@@ -296,6 +298,7 @@ def verify_run(input_path: str | Path, recipe_path: str | Path, run_dir: str | P
         manifest = _load_manifest(directory)
         table = read_csv(_location(root, input_path), encoding=manifest["input"]["encoding"])
         recipe = load_recipe(_location(root, recipe_path))
+        validate_approval_content(recipe)
         if table.sha256 != manifest["input"]["sha256"]:
             raise EngineError("input_hash_mismatch", "输入文件的哈希与运行记录不符。")
         if recipe_hash(recipe) != manifest["recipe"]["sha256"]:
